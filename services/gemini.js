@@ -10,7 +10,7 @@ export async function analyzeLead(category, message) {
   Category: ${category}
   Customer message: ${message}
   
-  Write a professional and friendly reply.
+  Write a short, friendly, professional reply that encourages the customer to continue the conversation.
   `;
 
     try {
@@ -29,6 +29,10 @@ export async function analyzeLead(category, message) {
             const errorText = await response.text();
             console.error("Gemini API error:", errorText);
             throw new Error("Gemini API failed");
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return { reply: "Thanks for reaching out! We'll reply shortly." };
         }
 
         const data = await response.json();
