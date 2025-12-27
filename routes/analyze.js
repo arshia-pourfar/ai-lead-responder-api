@@ -1,28 +1,44 @@
 import express from "express";
 import { analyzeLead } from "../services/gemini.js";
 import { addReplyToSheet } from "../services/googleSheet.js";
+import { detectCategory } from "../services/classifier.js";
+import { sendAutoReply } from "../services/email.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-    const { category, message, name, email } = req.body;
+    let { category, message, name, email } = req.body;
 
-    if (!category || !message) {
-        return res.status(400).json({ error: "category and message required" });
+    if (!message) {
+        return res.status(400).json({ error: "message required" });
     }
 
     try {
-        const result = await analyzeLead(category, message);
-
-        if (name && email) {
-            await addReplyToSheet(name, email, message, category, result.reply);
+        if (!category) {
+            category = await detectCategory(message);
         }
 
-        res.json(result);
+        const result = await analyzeLead(category, message);
+
+        await addReplyToSheet(
+            name || "Unknown",
+            email || "N/A",
+            message,
+            category,
+            result.reply
+        );
+
+        const emailSent = await sendAutoReply(email, result.reply, category);
+
+        res.json({
+            category,
+            reply: result.reply,
+            emailSent
+        });
 
     } catch (err) {
         console.error("Route error:", err);
-        res.status(500).json({ reply: "Sorry, an error occurred while generating a reply." });
+        res.status(500).json({ error: "Server error" });
     }
 });
 

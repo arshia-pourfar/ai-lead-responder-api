@@ -6,23 +6,25 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 
 export async function analyzeLead(category, message) {
     const prompt = `
-  You are an AI sales assistant.
-  Category: ${category}
-  Customer message: ${message}
-  
-  Write a short, friendly, professional reply that encourages the customer to continue the conversation.
-  `;
+        You are an AI sales/support assistant.
+        Category: ${category}
+        Customer message: ${message}
+
+        Write a short, friendly, professional reply that encourages the customer to continue the conversation.
+    `;
 
     try {
+        if (!process.env.GEMINI_API_KEY) {
+            return { reply: "Thanks for reaching out! We'll reply shortly." };
+        }
+
         const response = await fetch(GEMINI_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-goog-api-key": process.env.GEMINI_API_KEY
             },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         if (!response.ok) {
@@ -31,15 +33,8 @@ export async function analyzeLead(category, message) {
             throw new Error("Gemini API failed");
         }
 
-        if (!process.env.GEMINI_API_KEY) {
-            return { reply: "Thanks for reaching out! We'll reply shortly." };
-        }
-
         const data = await response.json();
-        console.log("Full API response:", JSON.stringify(data, null, 2));
-
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-            || "Sorry, no response";
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, no response";
 
         return { reply: text };
 

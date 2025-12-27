@@ -10,16 +10,12 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 
 export async function addReplyToSheet(name, email, message, category, reply) {
-  if (!process.env.SPREADSHEET_ID) {
-      throw new Error("SPREADSHEET_ID is missing in .env");
-  }
+  if (!process.env.SPREADSHEET_ID) throw new Error("SPREADSHEET_ID missing");
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: process.env.SPREADSHEET_ID,
     range: "Sheet1!A:E",
     valueInputOption: "RAW",
-    requestBody: {
-      values: [[name, email, message, category, reply]],
-    },
+    requestBody: { values: [[name, email, message, category, reply]] }
   });
 }
