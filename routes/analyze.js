@@ -6,6 +6,10 @@ import { sendAutoReply } from "../services/email.js";
 
 const router = express.Router();
 
+/**
+ * POST /analyze
+ * body: { message, name?, email?, category? }
+ */
 router.post("/", async (req, res) => {
     let { category, message, name, email } = req.body;
 
@@ -14,30 +18,35 @@ router.post("/", async (req, res) => {
     }
 
     try {
+        // 🧠 تشخیص خودکار دسته
         if (!category) {
             category = await detectCategory(message);
         }
 
-        const result = await analyzeLead(category, message);
+        // 🤖 تولید پاسخ AI
+        const { reply } = await analyzeLead(category, message);
 
+        // 📊 ذخیره در Google Sheet
         await addReplyToSheet(
             name || "Unknown",
             email || "N/A",
             message,
             category,
-            result.reply
+            reply
         );
 
-        const emailSent = await sendAutoReply(email, result.reply, category);
+        // 📧 ارسال ایمیل (در صورت فعال بودن)
+        const emailSent = await sendAutoReply(email, reply, category);
 
+        // ✅ پاسخ نهایی API
         res.json({
             category,
-            reply: result.reply,
+            reply,
             emailSent
         });
 
     } catch (err) {
-        console.error("Route error:", err);
+        console.error("Analyze route error:", err);
         res.status(500).json({ error: "Server error" });
     }
 });
